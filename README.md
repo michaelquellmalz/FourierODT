@@ -23,14 +23,14 @@ When you are using this code, please cite the paper
 
 Robert Beinert, Michael Quellmalz:
 ''Total variation-based phase retrieval for diffraction tomography''.
-ArXiV Preprint, 2022.
+[ArXiv Preprint 2201.11579](https://arxiv.org/abs/2201.11579), 2022.
 
 This paper also explains the algorithms in more detail.
 
 Installation
 ------------
 This software requires an installation of the NFFT3 Matlab interface 
-in the Matlab path (by default ad ../nfft). 
+in the Matlab path (by default add `../nfft`). 
 This folder should contain nfft.m and nfftmex.mexw64.
 The NFFT3 Matlab inteface is availabe at 
 https://tu-chemnitz.de/~potts/nfft/download.php.
