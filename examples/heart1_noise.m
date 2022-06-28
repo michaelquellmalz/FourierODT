@@ -82,7 +82,6 @@ tic; f1tv = tvDenoising(f1, tvOpt); toc
 newplot; surface(os.z1,os.z3,real(f1tv),'EdgeColor','none')
 axis off; axis equal; axis tight
 caxis(limits)
-crop([name '-rec-bp-tv.png'],0,0)
 colorbar;
 fprintf('mse: %e\npsnr: %f\nssim: %f\n', ...
     immse(f1tv,f), psnr(f1tv,f), ssim(f1tv,f));
