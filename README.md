@@ -62,8 +62,9 @@ Legal Information & Credits
 ---------------------------
 Copyright (c) 2022 Robert Beinert and Michael Quellmalz
 
-This software was written by Robert Beinert and Michael Quellmalz.
+This software was written by [Robert Beinert](https://www.math.tu-berlin.de/fachgebiete_ag_modnumdiff/angewandte_mathematik/v_menue/team/dr_robert_beinert/v_menue/dr_robert_beinert/) and [Michael Quellmalz](https://page.math.tu-berlin.de/~quellm/).
 It was developed at the Institute of Mathematics, TU Berlin.
+The second mentioned author acknowledges support by the German Research Foundation within the [SFB Tomography Across the Scales]( https://tomography.univie.ac.at/).
 
 FourierODT is free software. You can redistribute it and/or modify it under the
 terms of the GNU General Public License as published by the Free Software
