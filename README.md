@@ -8,7 +8,7 @@ It implements reconstruction algorithms and phase retrieval methods
 for optical diffraction tomography.
 
 __Reconstruction Methods__
-* Backpropagation algorithm
+* Filtered backpropagation algorithm
 * Inverse NDFT (nonuniform discrete Fourier transform) with the conjugate gradients method *(CGNE)*
 * TV regularization with a forward-backward primal-dual algorithm *(FBPD)*
 
@@ -22,8 +22,9 @@ Reference
 When you are using this code, please cite the paper
 
 Robert Beinert, Michael Quellmalz:
-''Total variation-based phase retrieval for diffraction tomography''.
-[ArXiv Preprint 2201.11579](https://arxiv.org/abs/2201.11579), 2022.
+__Total variation-based phase retrieval for diffraction tomography__.
+*SIAM Journal on Imaging Sciences* 15(3), p. 1373-1399 (2022). [doi:10.1137/22M1474382](https://doi.org/10.1137/22M1474382). 
+([ArXiv Preprint 2201.11579](https://arxiv.org/abs/2201.11579))
 
 This paper also explains the algorithms in more detail.
 
