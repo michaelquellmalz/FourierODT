@@ -11,14 +11,20 @@ classdef DiffractionModel < handle
         y1 = []
         y2 = []
         y3 = []
+        ind_t = []
+        FourierGridType = 'uniform'
+        FourierGridSize = [];
     end
     properties (SetAccess = public)
         backwardMethod = BackwardCGNE
     end
     methods
-        function obj = DiffractionModel(os)
+        function obj = DiffractionModel(os,gridType)
         % Class constructor. 
             if nargin ~= 0
+                if nargin > 1
+                  obj.FourierGridType = gridType;
+                end
                 obj.os = os;
                 obj.createLayer;
                 obj.setupNFFT;
@@ -45,7 +51,7 @@ classdef DiffractionModel < handle
           fp = f(f~=0);
           uBorn = zeros(obj.os.nM^(obj.os.d-1),obj.os.mt); % initialize
           
-          n = obj.os.n * ones(size(obj.os.t0));
+          n = obj.os.n .* ones(size(obj.os.t0));
           for t=1:obj.os.mt
             % rotated direction of plane wave uinc
             [s1r,s2r,s3r] = rotation_axis(0,0,1, n(1,t),n(2,t),n(3,t), obj.os.t0(t)); 
@@ -54,7 +60,7 @@ classdef DiffractionModel < handle
             % rotation of coordinates corresponds to rotation of object f
             [r1r,r2r,r3r] = rotation_axis(...
               obj.os.r1(:),obj.os.r2(:),obj.os.rM,...
-              obj.os.n(1),obj.os.n(2),obj.os.n(3),...
+              obj.os.n(1,t),obj.os.n(2,t),obj.os.n(3,t),...
               (obj.os.t0(t)));
 
             % Compute convolution in Matlab
@@ -116,9 +122,28 @@ classdef DiffractionModel < handle
                 case 2
                     Fu = fftshift(fft(fftshift(uborn,1), obj.os.nu, 1), 1);
                 case 3
+                  if 0 % strcmp(obj.FourierGridType, 'uniform')
                     Fu = fftshift(fftshift(fft(fft(fftshift(fftshift(...
                         uborn, 1), 2), obj.os.nu, 1), obj.os.nu, 2), 1), 2);
+                  else
+                    [k1,k2,~,~] = obj.createFourierGrid3d;
+                    k1 = k1(:,:,1);
+                    k2 = k2(:,:,1);
+                    Fu = obj.planeToLayerNonuniform3d(uborn, k1, k2);
+                  end
             end
+        end
+        
+        function Fu = planeToLayerNonuniform3d(obj, uborn, k1, k2)
+            Fu = zeros(numel(k1), obj.os.mt);
+            p = nfft(2, [obj.os.nu obj.os.nu], prod(obj.FourierGridSize));
+            p.x = [k1(:) k2(:)] / (2*obj.os.lk);
+            for t = 1:obj.os.mt
+              p.fhat = reshape(uborn(:,:,t), [], 1);
+              p.nfft_trafo;
+              Fu(:,t) = p.f;
+            end % for
+            Fu = reshape(Fu, size(k1,1), size(k1,2), obj.os.mt);
         end
         
         function w = extractWeights(obj)
@@ -140,13 +165,16 @@ classdef DiffractionModel < handle
         
         function createLayer2d(obj)
             [k1, t] = ndgrid(obj.os.r, obj.os.t0);
+            [~, it] = ndgrid(obj.os.r, 1:obj.os.mt);
+            obj.FourierGridSize = [obj.os.nk];
             kappa2 = (obj.os.k0^2 - k1.^2);
             obj.ind = kappa2 > 1e-6;
+            obj.ind_t = it(obj.ind);
             obj.kappa = sqrt(kappa2(obj.ind));
             y1tmp = k1(obj.ind);
             t = t(obj.ind);
             y3tmp = obj.kappa - obj.os.k0;
-            n = reshape(obj.os.n .* ones(size(obj.os.t0)),3,obj.os.mt);
+            n = reshape(obj.os.n .* ones(size(obj.os.t0)),3,1,obj.os.mt);
             n1 = n(1,1,:) .* ones(obj.os.sizePlane);
             n2 = n(2,1,:) .* ones(obj.os.sizePlane);
             n3 = n(3,1,:) .* ones(obj.os.sizePlane);
@@ -155,9 +183,11 @@ classdef DiffractionModel < handle
         end
         
         function createLayer3d(obj)
-            [k1,k2,t] = ndgrid(obj.os.r, obj.os.r, obj.os.t0);
+            obj.FourierGridSize = [obj.os.nk obj.os.nk];
+            [k1,k2,t,it] = obj.createFourierGrid3d;
             kappa2 = (obj.os.k0^2 - k1.^2 - k2.^2);
             obj.ind = kappa2>1e-6;
+            obj.ind_t = it(obj.ind);
             obj.kappa = sqrt(kappa2(obj.ind));
             y1tmp = k1(obj.ind);
             y2tmp = k2(obj.ind);
@@ -169,6 +199,30 @@ classdef DiffractionModel < handle
             n3 = n(3,1,:) .* ones(obj.os.sizePlane);
             [obj.y1, obj.y2, obj.y3] = rotation_axis(y1tmp, y2tmp, y3tmp, ...
                 n1(obj.ind), n2(obj.ind), n3(obj.ind), t);
+        end
+        
+        function [k1,k2,t,it] = createFourierGrid3d(obj)
+          switch obj.FourierGridType
+            case 'uniform'
+              [k1,k2,t] = ndgrid(obj.os.r, obj.os.r, obj.os.t0);
+              [~,~, it] = ndgrid(obj.os.r, obj.os.r, 1:obj.os.mt);
+            case 'radial'
+              mr = obj.FourierGridSize(1);
+              mp = obj.FourierGridSize(2);
+              r_line = obj.os.lk*sqrt(2)/(mr+1) * (-mr/2:mr/2-1);
+              ph_line = (0:mp-1)*pi/mp;
+              [r,ph,t] = ndgrid(r_line, ph_line, obj.os.t0);
+              [~,~, it] = ndgrid(r_line, ph_line, 1:obj.os.mt);
+              k1 = r.*cos(ph);
+              k2 = r.*sin(ph);
+            case 'random'
+              r1 = rand(obj.FourierGridSize(1),1) * obj.os.lk;
+              r2 = rand(obj.FourierGridSize(2),1) * obj.os.lk;
+              [k1,k2,t] = ndgrid(r1, r2, obj.os.t0);
+              [~,~, it] = ndgrid(r1, r2, 1:obj.os.mt);
+            otherwise
+              error('Unknown grid type')
+          end
         end
         
         function setupNFFT(obj)
@@ -208,9 +262,30 @@ classdef DiffractionModel < handle
                 case 2
                     uborn = fftshift(ifft(fftshift(Fu, 1), obj.os.nu, 1), 1);
                 case 3
+                  if 0 %strcmp(obj.FourierGridType, 'uniform')
                     uborn = fftshift(fftshift(ifft(ifft(fftshift(fftshift(...
                         Fu, 1), 2), obj.os.nu, 1), obj.os.nu, 2), 1), 2);
+                  else
+                    uborn = obj.layerToPlaneNonuniform3d(Fu);
+                  end
             end
+        end
+        
+        function uborn = layerToPlaneNonuniform3d(obj, Ff)
+          uborn = zeros(obj.os.nu^2, obj.os.mt);
+          p = nfft(2, [obj.os.nu obj.os.nu], prod(obj.FourierGridSize));
+          [k1,k2,~,~] = obj.createFourierGrid3d;
+          k1 = k1(:,:,1);
+          k2 = k2(:,:,1);
+          p.x = [k1(:) k2(:)] / (2 * obj.os.lk);
+          for t = 1:obj.os.mt
+            Ff_tmp = Ff(:,:,t);
+            p.f = Ff_tmp(:);
+            p.nfft_adjoint;
+            p.nfft_solver(10);
+            uborn(:,t) = p.fhat;
+          end % for
+            uborn = reshape(uborn,obj.os.nu, obj.os.nu, obj.os.mt);
         end
         
         function f = LayerToObject(obj, Ff, f0)
@@ -267,11 +342,50 @@ classdef DiffractionModel < handle
                 case 3
                     [k1, k2, ~] = ndgrid(obj.os.r, obj.os.r, obj.os.t0);
             end
+            if isempty(obj.os.nd)
             obj.backwardMethod.weights = obj.os.k0 / 2 ...
                 * abs(k1(obj.ind)*obj.os.n(2) - k2(obj.ind)*obj.os.n(1)) ...
                 ./ (obj.kappa) / (2 * pi)^(obj.os.d) ...
                 * obj.volumePlane / numel(obj.kappa)...
                 * (2 * obj.os.rf / obj.os.nf)^obj.os.d;
+            else
+              k1 = k1(obj.ind);
+              k2 = k2(obj.ind);
+              k3 = obj.kappa - obj.os.k0;
+              alpha = repmat(reshape(obj.os.t0,1,1,obj.os.mt), obj.os.nk,obj.os.nk);
+              alpha = alpha(obj.ind);
+              alphad = ones(size(alpha));
+%               n1 = reshape(obj.os.n(1,obj.ind_t), numel(obj.ind_t), 1);
+%               n2 = reshape(obj.os.n(2,obj.ind_t), numel(obj.ind_t), 1);
+%               n3 = reshape(obj.os.n(3,obj.ind_t), numel(obj.ind_t), 1);
+            n = reshape(obj.os.n .* ones(size(obj.os.t0)),3,1,obj.os.mt);
+            n1 = n(1,1,:) .* ones(obj.os.sizePlane);
+            n2 = n(2,1,:) .* ones(obj.os.sizePlane);
+            n3 = n(3,1,:) .* ones(obj.os.sizePlane);
+            n1 = n1(obj.ind);
+            n2 = n2(obj.ind);
+            n3 = n3(obj.ind);
+            nd = reshape(obj.os.nd .* ones(size(obj.os.t0)),3,1,obj.os.mt);
+            nd1 = nd(1,1,:) .* ones(obj.os.sizePlane);
+            nd2 = nd(2,1,:) .* ones(obj.os.sizePlane);
+            nd3 = nd(3,1,:) .* ones(obj.os.sizePlane);
+            nd1 = nd1(obj.ind);
+            nd2 = nd2(obj.ind);
+            nd3 = nd3(obj.ind);
+%               nd1 = reshape(obj.os.nd(1,obj.ind_t), numel(obj.ind_t), 1);
+%               nd2 = reshape(obj.os.nd(2,obj.ind_t), numel(obj.ind_t), 1);
+%               nd3 = reshape(obj.os.nd(3,obj.ind_t), numel(obj.ind_t), 1);
+              obj.backwardMethod.weights = obj.os.k0 / 2 ...
+                ./ (obj.kappa) / (2 * pi)^(obj.os.d) ...
+                * obj.volumePlane / numel(obj.kappa)... 
+                * (2 * obj.os.rf / obj.os.nf)^obj.os.d ...  
+                .* abs( (1-cos(alpha)).*(n3.*(nd1.*k1 ...
+                  +nd2.*k2+nd3.*k3)-nd3.*(n1.*k1+n2.*k2+n3.*k3))...
+                -n3.*sin(alpha).*(n1.*(nd2.*k3-nd3.*k2))...
+                +n2.*(nd3.*k1-nd1.*k3+n3.*(nd1.*k2-nd2.*k1))...
+                -alphad.*(n1.*k2-n2.*k1) ...
+                +sin(alpha).*(n1.*nd2-n2.*nd1).*(n1.*k1+n2.*k2+n3.*k3));
+            end
         end
         
         function val = volumePlane(obj)

@@ -13,6 +13,7 @@ classdef OpticalSystem
         freq = 1            % frequency
         n0 = 1              % refractive index of the medium
         n = [0; 1; 0]       % rotation axis n
+        nd = []             % time derivative of rotation axis n
         d = 2               % dimension
         lM                  % length of measurement interval/plane
         t0                  % rotation angles
@@ -26,7 +27,7 @@ classdef OpticalSystem
         lk                  % grid size of measurment points of u
         rs                  % maximal size of sample
         rf                  % grid size for f
-        r
+        r                   % 1D grid in Fourier space
         z1                  % grid points of f
         z2
         z3
