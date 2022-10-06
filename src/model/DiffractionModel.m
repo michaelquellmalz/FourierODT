@@ -122,7 +122,7 @@ classdef DiffractionModel < handle
                 case 2
                     Fu = fftshift(fft(fftshift(uborn,1), obj.os.nu, 1), 1);
                 case 3
-                  if 0 % strcmp(obj.FourierGridType, 'uniform')
+                  if strcmp(obj.FourierGridType, 'uniform')
                     Fu = fftshift(fftshift(fft(fft(fftshift(fftshift(...
                         uborn, 1), 2), obj.os.nu, 1), obj.os.nu, 2), 1), 2);
                   else
