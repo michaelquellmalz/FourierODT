@@ -17,8 +17,8 @@ __Phase Retrieval Methods__
 * Hybrid input-output algorithm *(HIO)*
 * Free space propagation approach by Maleki & Devaney *(MD)*
 
-Reference
----------
+References
+----------
 When you are using this code, please cite the paper
 
 Robert Beinert, Michael Quellmalz:
@@ -27,6 +27,12 @@ __Total variation-based phase retrieval for diffraction tomography__.
 ([ArXiv Preprint 2201.11579](https://arxiv.org/abs/2201.11579))
 
 This paper also explains the algorithms in more detail.
+
+The code for an arbitrary movement of the object (with possible time dependent axis of rotation) is described in the paper
+
+Robert Beinert, Michael Quellmalz:
+__Total variation-based reconstruction and phase retrieval for diffraction tomography with an arbitrarily moving object__.
+*Proceedings in Applied Mathematics & Mechanics* 22(1), e202200135 (2023). [doi:10.1137/22M1474382](https://doi.org/10.1002/pamm.202200135). 
 
 Installation
 ------------
